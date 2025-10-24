@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SynapseNet Data Verification</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #fff;
+        }
+        .section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .price-display {
+            font-size: 2em;
+            font-weight: bold;
+            text-align: center;
+            color: #4ade80;
+            margin: 20px 0;
+        }
+        .info {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+        }
+        .status {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin: 5px;
+        }
+        .success { background: #10b981; }
+        .error { background: #ef4444; }
+        .warning { background: #f59e0b; }
+        button {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+        }
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .comparison-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 SynapseNet Data Verification</h1>
+        
+        <div class="section">
+            <h2>📊 Blockchain Data (Direct from Chainlink)</h2>
+            <div id="blockchain-data">
+                <div class="price-display" id="blockchain-price">Loading...</div>
+                <div class="info">
+                    <div><strong>Source:</strong> <span id="blockchain-source">Checking...</span></div>
+                    <div><strong>Contract:</strong> <span id="blockchain-contract">-</span></div>
+                    <div><strong>Last Updated:</strong> <span id="blockchain-time">-</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🌐 WebApp Data (From Your Dashboard)</h2>
+            <div id="webapp-data">
+                <div class="price-display" id="webapp-price">Not Connected</div>
+                <div class="info">
+                    <div><strong>Status:</strong> <span id="webapp-status" class="status error">Disconnected</span></div>
+                    <div><strong>Connection:</strong> <span id="webapp-connection">ws://localhost:8090</span></div>
+                    <div><strong>Last Update:</strong> <span id="webapp-time">-</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🔍 Comparison</h2>
+            <div class="comparison">
+                <div class="comparison-item">
+                    <h3>Blockchain</h3>
+                    <div id="comparison-blockchain">$0.00</div>
+                </div>
+                <div class="comparison-item">
+                    <h3>WebApp</h3>
+                    <div id="comparison-webapp">$0.00</div>
+                </div>
+            </div>
+            <div id="comparison-result" class="info" style="text-align: center; margin-top: 20px;">
+                <span class="status warning">Comparing...</span>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🛠️ Actions</h2>
+            <button onclick="refreshBlockchainData()">🔄 Refresh Blockchain Data</button>
+            <button onclick="connectToWebApp()">🔌 Connect to WebApp</button>
+            <button onclick="openWebApp()">🌐 Open WebApp</button>
+        </div>
+
+        <div class="section">
+            <h2>📋 Instructions</h2>
+            <div class="info">
+                <p><strong>To verify your data is accurate:</strong></p>
+                <ol>
+                    <li>Click "Connect to WebApp" to connect to your dashboard</li>
+                    <li>Click "Open WebApp" to open your dashboard in a new tab</li>
+                    <li>Compare the prices shown above</li>
+                    <li>Prices should match (within a few seconds of update)</li>
+                </ol>
+                <p><strong>If prices don't match:</strong></p>
+                <ul>
+                    <li>Check if your backend services are running</li>
+                    <li>Verify WebSocket connection at ws://localhost:8090</li>
+                    <li>Check browser console for errors</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let webSocket = null;
+        let blockchainPrice = 0;
+        let webAppPrice = 0;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            refreshBlockchainData();
+            connectToWebApp();
+        });
+
+        async function refreshBlockchainData() {
+            try {
+                // This would normally call your backend API
+                // For now, we'll simulate the data
+                const response = await fetch('/api/blockchain-data');
+                const data = await response.json();
+                
+                document.getElementById('blockchain-price').textContent = `$${data.price.toFixed(2)}`;
+                document.getElementById('blockchain-source').textContent = data.source;
+                document.getElementById('blockchain-contract').textContent = data.contract;
+                document.getElementById('blockchain-time').textContent = new Date(data.lastUpdated).toLocaleString();
+                
+                blockchainPrice = data.price;
+                updateComparison();
+            } catch (error) {
+                document.getElementById('blockchain-price').textContent = 'Error';
+                document.getElementById('blockchain-source').textContent = 'Failed to fetch';
+                console.error('Error fetching blockchain data:', error);
+            }
+        }
+
+        function connectToWebApp() {
+            if (webSocket) {
+                webSocket.close();
+            }
+
+            webSocket = new WebSocket('ws://localhost:8090');
+            
+            webSocket.onopen = function() {
+                document.getElementById('webapp-status').textContent = 'Connected';
+                document.getElementById('webapp-status').className = 'status success';
+                console.log('Connected to WebApp WebSocket');
+            };
+            
+            webSocket.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.type === 'price_update') {
+                        const price = data.data.price;
+                        document.getElementById('webapp-price').textContent = `$${price.toFixed(2)}`;
+                        document.getElementById('webapp-time').textContent = new Date(data.timestamp).toLocaleString();
+                        
+                        webAppPrice = price;
+                        updateComparison();
+                    }
+                } catch (error) {
+                    console.error('Error parsing WebSocket data:', error);
+                }
+            };
+            
+            webSocket.onclose = function() {
+                document.getElementById('webapp-status').textContent = 'Disconnected';
+                document.getElementById('webapp-status').className = 'status error';
+                console.log('WebSocket connection closed');
+            };
+            
+            webSocket.onerror = function(error) {
+                document.getElementById('webapp-status').textContent = 'Error';
+                document.getElementById('webapp-status').className = 'status error';
+                console.error('WebSocket error:', error);
+            };
+        }
+
+        function updateComparison() {
+            document.getElementById('comparison-blockchain').textContent = `$${blockchainPrice.toFixed(2)}`;
+            document.getElementById('comparison-webapp').textContent = `$${webAppPrice.toFixed(2)}`;
+            
+            if (blockchainPrice > 0 && webAppPrice > 0) {
+                const difference = Math.abs(blockchainPrice - webAppPrice);
+                const percentage = (difference / blockchainPrice) * 100;
+                
+                if (difference < 0.01) {
+                    document.getElementById('comparison-result').innerHTML = '<span class="status success">✅ Perfect Match!</span>';
+                } else if (percentage < 1) {
+                    document.getElementById('comparison-result').innerHTML = `<span class="status success">✅ Very Close (${difference.toFixed(2)} difference)</span>`;
+                } else {
+                    document.getElementById('comparison-result').innerHTML = `<span class="status warning">⚠️ Different (${difference.toFixed(2)} difference)</span>`;
+                }
+            }
+        }
+
+        function openWebApp() {
+            window.open('http://localhost:5173', '_blank');
+        }
+    </script>
+</body>
+</html>
