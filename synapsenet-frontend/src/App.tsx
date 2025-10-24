@@ -51,89 +51,80 @@ function App() {
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    // Simulate real blockchain data stream
-    // Initialize with some starting data
-    const initialEvents: SynapseEvent[] = [];
-    for (let i = 0; i < 5; i++) {
-      const timestamp = Date.now() - (i * 2000);
-      const price = 3200 + (Math.random() - 0.5) * 100;
+    // Connect to real blockchain data stream via WebSocket
+    const connectToRealData = () => {
+      const wsUrl = 'ws://localhost:8090';
+      console.log('🔗 Connecting to real data backend:', wsUrl);
       
-      initialEvents.push({
-        id: crypto.randomUUID(),
-        type: 'price_update',
-        data: {
-          token: 'ETH',
-          price: Number(price.toFixed(2)),
-          source: 'Chainlink Oracle',
-          network: 'Polygon Amoy',
-        },
-        timestamp,
-        sourceChain: 'price-feed',
-      });
-    }
-    
-    setEvents(initialEvents);
-    if (initialEvents.length > 0) {
-      setCurrentPrice(initialEvents[0].data.price as number);
-    }
-    
-    const interval = setInterval(() => {
-      const eventType = Math.random() > 0.5 ? 'price_update' : 'score_update';
-      const now = Date.now();
+      wsRef.current = new WebSocket(wsUrl);
       
-      let event: SynapseEvent;
+      wsRef.current.onopen = () => {
+        console.log('✅ Connected to real data stream');
+        setIsConnected(true);
+      };
       
-      if (eventType === 'price_update') {
-        // Simulate realistic ETH price movements
-        const basePrice = 3200 + Math.sin(now / 10000) * 200; // Oscillating around $3200
-        const volatility = (Math.random() - 0.5) * 50; // ±$25 volatility
-        const price = Math.max(2800, basePrice + volatility);
-        
-        event = {
-          id: crypto.randomUUID(),
-          type: 'price_update',
-          data: {
-            token: 'ETH',
-            price: Number(price.toFixed(2)),
-            source: 'Chainlink Oracle',
-            network: 'Polygon Amoy',
-          },
-          timestamp: now,
-          sourceChain: 'price-feed',
-        };
-        
-        // Update current price and calculate change
-        setCurrentPrice(prev => {
-          if (prev > 0) {
-            setPriceChange(price - prev);
-          } else {
-            setPriceChange(0);
+      wsRef.current.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          console.log('📊 Received real data:', data);
+          
+          if (data.type === 'price_update') {
+            const price = data.data.price;
+            
+            // Update current price and calculate change
+            setCurrentPrice(prev => {
+              if (prev > 0) {
+                setPriceChange(price - prev);
+              } else {
+                setPriceChange(0);
+              }
+              return price;
+            });
+            
+            // Add to events list
+            setEvents(prev => [data, ...prev.slice(0, 199)]);
+            setLastUpdated(new Date());
+            
+            // Update latency if available
+            if (data.latency) {
+              setAvgLatency(data.latency);
+            }
+          } else if (data.type === 'score_update') {
+            // Handle score updates
+            setEvents(prev => [data, ...prev.slice(0, 199)]);
+            setLastUpdated(new Date());
           }
-          return price;
-        });
-      } else {
-        // Simulate identity score updates
-        const userId = `user_${Math.floor(Math.random() * 1000)}`;
-        const score = Math.max(0, Math.min(100, 50 + (Math.random() - 0.5) * 30));
-        
-        event = {
-          id: crypto.randomUUID(),
-          type: 'score_update',
-          data: {
-            user_id: userId,
-            score: Number(score.toFixed(1)),
-          },
-          timestamp: now,
-          sourceChain: 'identity-score',
-        };
-      }
+        } catch (error) {
+          console.error('❌ Error parsing WebSocket data:', error);
+        }
+      };
       
-      setEvents(prev => [event, ...prev.slice(0, 199)]);
-      setLastUpdated(new Date());
-      setAvgLatency(35 + Math.floor(Math.random() * 20)); // 35-55ms latency
-    }, 2000); // Update every 2 seconds
-
-    return () => clearInterval(interval);
+      wsRef.current.onclose = () => {
+        console.log('🔌 WebSocket connection closed');
+        setIsConnected(false);
+        
+        // Attempt to reconnect after 3 seconds
+        setTimeout(() => {
+          console.log('🔄 Attempting to reconnect...');
+          connectToRealData();
+        }, 3000);
+      };
+      
+      wsRef.current.onerror = (error) => {
+        console.error('❌ WebSocket error:', error);
+        setIsConnected(false);
+      };
+    };
+    
+    // Start connection
+    connectToRealData();
+    
+    // Cleanup on unmount
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+    };
   }, []);
 
   const priceEvents = useMemo(() => events.filter(e => e.type === 'price_update'), [events]);
@@ -275,9 +266,14 @@ function App() {
               <div>
                 <p className="text-sm uppercase tracking-[0.35em] text-gray-400">Live Feed</p>
                 <h2 className="text-2xl font-semibold text-blue-400">
-                  Live ETH/USD — Chainlink Oracle Feed (Polygon Amoy)
+                  Live ETH/USD — Real Chainlink Oracle Feed
                 </h2>
-                <p className="text-sm text-gray-300">Real-time price data streamed via Chainlink Oracle</p>
+                <p className="text-sm text-gray-300">
+                  {isConnected 
+                    ? "✅ Connected to real Chainlink Oracle data" 
+                    : "❌ Connecting to real data backend..."
+                  }
+                </p>
               </div>
               <div className="flex items-center space-x-3">
                 <span className="flex items-center space-x-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-sm text-emerald-400 shadow-glow">

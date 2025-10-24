@@ -53,19 +53,25 @@ Frontend Dashboard (React)
    cd snyapsnet
    ```
 
-2. **Start the backend services**
+2. **Quick Start (All Services)**
    ```bash
-   cd synapsenet-backend
    # Windows
-   .\start_real_data.ps1
+   .\start_synapsenet.ps1
    
    # Linux/macOS
-   chmod +x start_real_data.sh
-   ./start_real_data.sh
+   chmod +x start_synapsenet.sh
+   ./start_synapsenet.sh
    ```
 
-3. **Start the frontend**
+3. **Manual Setup (Alternative)**
    ```bash
+   # Start backend services
+   cd synapsenet-backend
+   .\start_real_data.ps1  # Windows
+   # OR
+   ./start_real_data.sh   # Linux/macOS
+   
+   # Start frontend (in new terminal)
    cd synapsenet-frontend
    npm install
    npm run dev
@@ -74,6 +80,7 @@ Frontend Dashboard (React)
 4. **Access the dashboard**
    - Frontend: http://localhost:5173
    - WebSocket: ws://localhost:8090
+   - **Real ETH prices** from Chainlink Oracle
 
 ## 📊 Data Sources
 
