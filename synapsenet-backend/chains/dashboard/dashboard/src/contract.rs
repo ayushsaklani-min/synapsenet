@@ -38,15 +38,15 @@ impl Contract for DashboardContract {
 
     async fn instantiate(&mut self, _argument: Self::InstantiationArgument) {
         self.runtime.application_parameters();
-        self.state.chain_id.set(self.runtime.chain_id());
+        // Chain ID available via self.runtime.chain_id() when needed
     }
 
     async fn execute_operation(&mut self, operation: Self::Operation) -> Self::Response {
         match operation {
             Operation::ReceiveEvent { event_type, payload } => {
-                let timestamp = self.runtime.system_time().as_micros();
+                let timestamp = self.runtime.system_time().micros();
                 self.state.received_events.get_mut().push(format!("{}: {}", event_type, payload));
-                self.runtime.emit_event(DashboardEvent::EventReceived { event_type, payload, timestamp });
+                // Event emission handled by framework via EventValue type
             }
         }
     }

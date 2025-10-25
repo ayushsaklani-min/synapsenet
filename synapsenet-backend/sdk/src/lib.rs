@@ -11,6 +11,7 @@ use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
 use uuid::Uuid;
 use std::str::FromStr;
+use std::env;
 
 pub mod error;
 pub mod events;
@@ -30,20 +31,7 @@ pub struct SynapseNet {
 
 impl SynapseNet {
     pub fn new() -> Self {
-        let config = SynapseNetConfig {
-            price_feed_chain: ChainConfig {
-                chain_id: ChainId::root(0), // Placeholder
-                application_id: ApplicationId::from_str("0000000000000000000000000000000000000000000000000000000000000000").unwrap(), // Placeholder
-            },
-            identity_score_chain: ChainConfig {
-                chain_id: ChainId::root(0), // Placeholder
-                application_id: ApplicationId::from_str("0000000000000000000000000000000000000000000000000000000000000000").unwrap(), // Placeholder
-            },
-            dashboard_chain: ChainConfig {
-                chain_id: ChainId::root(0), // Placeholder
-                application_id: ApplicationId::from_str("0000000000000000000000000000000000000000000000000000000000000000").unwrap(), // Placeholder
-            },
-        };
+        let config = SynapseNetConfig::from_env().expect("Failed to build SynapseNet configuration");
 
         let client = Arc::new(Mutex::new(SynapseNetClient::new(config.clone())));
         let subscriptions = Arc::new(Mutex::new(HashMap::new()));

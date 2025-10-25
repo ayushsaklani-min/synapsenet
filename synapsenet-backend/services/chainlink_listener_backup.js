@@ -8,7 +8,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 // OPTIMIZED: Use faster RPC endpoints
-const CHAINLINK_CONTRACT = process.env.CHAINLINK_CONTRACT || "0x9b8e6d8b2417116f4ff9bc4e9b9f91a8a7d2f8e5";
+const CHAINLINK_CONTRACT = "0x9b8e6d8b2417116f4ff9bc4e9b9f91a8a7d2f8e5";
 const POLYGON_AMOY_RPC = process.env.POLYGON_AMOY_RPC || "https://rpc-amoy.polygon.technology";
 const SEPOLIA_RPC = process.env.SEPOLIA_RPC || "https://ethereum-sepolia.publicnode.com";
 
@@ -36,12 +36,18 @@ const CHAINLINK_ABI = [
 class OptimizedChainlinkListener {
   constructor() {
     // OPTIMIZED: Connection pooling and reuse
-    this.provider = new ethers.JsonRpcProvider(POLYGON_AMOY_RPC);
+    this.provider = new ethers.JsonRpcProvider(POLYGON_AMOY_RPC, {
+      staticNetwork: true,
+      batchMaxCount: 1
+    });
     this.contract = new ethers.Contract(CHAINLINK_CONTRACT, CHAINLINK_ABI, this.provider);
     
     // Fallback with optimized connection
     this.fallback = {
-      provider: new ethers.JsonRpcProvider(SEPOLIA_RPC),
+      provider: new ethers.JsonRpcProvider(SEPOLIA_RPC, {
+        staticNetwork: true,
+        batchMaxCount: 1
+      }),
       address: "0x694AA1769357215DE4FAC081bf1f309aDC325306",
       label: "Ethereum Sepolia",
     };
@@ -55,7 +61,7 @@ class OptimizedChainlinkListener {
     // OPTIMIZED: Caching
     this.lastSuccessfulPrice = null;
     this.lastSuccessfulTime = 0;
-    this.cacheTimeout = 5000; // 5 seconds cache (more frequent updates)
+    this.cacheTimeout = 30000; // 30 seconds cache
     
     this.setupWebSocketServer();
     this.startPriceStream();
@@ -145,10 +151,8 @@ class OptimizedChainlinkListener {
             } catch (fallbackError) {
               // If both fail, use cached price or mock data
               if (this.lastSuccessfulPrice) {
-                // Add small variation to cached price to simulate market movement
-                const variation = (Math.random() - 0.5) * 10; // ±$5 variation
-                price = this.lastSuccessfulPrice + variation;
-                console.log("⚠️ Using cached price with variation due to network issues");
+                price = this.lastSuccessfulPrice;
+                console.log("⚠️ Using cached price due to network issues");
               } else {
                 console.log("⚠️ All sources unavailable, using mock data for testing");
                 price = 2500 + (Math.random() - 0.5) * 100; // Mock ETH price around $2500
@@ -198,8 +202,8 @@ class OptimizedChainlinkListener {
     // Initial fetch
     await fetchPrice();
     
-    // OPTIMIZED: Faster updates (every 1 second for more frequent changes)
-    setInterval(fetchPrice, 1000); // Every 1 second
+    // OPTIMIZED: Faster updates (every 2 seconds instead of 5)
+    setInterval(fetchPrice, 2000); // Every 2 seconds
   }
 
   handleReconnection() {

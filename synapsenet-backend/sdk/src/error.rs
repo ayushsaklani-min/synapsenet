@@ -8,6 +8,8 @@ pub enum SynapseNetError {
     GraphQLError(String),
     #[error("Serialization error: {0}")]
     SerializationError(#[from] serde_json::Error),
+    #[error("HTTP error: {0}")]
+    HttpError(#[from] reqwest::Error),
     #[error("Invalid event type: {0}")]
     InvalidEventType(String),
     #[error("Other error: {0}")]

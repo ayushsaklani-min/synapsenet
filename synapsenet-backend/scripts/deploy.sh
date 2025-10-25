@@ -3,9 +3,9 @@
 echo "🚀 Deploying SynapseNet Contracts to Linera Network..."
 
 # Set environment variables for Linera
-export LINERA_WALLET="/tmp/.tmpj5a5dq/wallet_0.json"
-export LINERA_KEYSTORE="/tmp/.tmpj5a5dq/keystore_0.json"
-export LINERA_STORAGE="rocksdb:/tmp/.tmpj5a5dq/client_0.db"
+export LINERA_WALLET="/tmp/linera-net/wallet_0.json"
+export LINERA_KEYSTORE="/tmp/linera-net/keystore_0.json"
+export LINERA_STORAGE="rocksdb:/tmp/linera-net/client_0.db"
 
 # Build all contracts
 echo "📦 Building contracts..."

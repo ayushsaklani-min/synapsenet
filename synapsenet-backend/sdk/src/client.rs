@@ -22,12 +22,12 @@ pub struct SynapseNetClient {
 impl SynapseNetClient {
     pub fn new(config: SynapseNetConfig) -> Self {
         let client = ChainClient::new(
-            "http://localhost:8080/graphql".to_string(), // Linera GraphQL endpoint
-            None, // No wallet path needed for this example
-            None, // No keystore path needed for this example
-            None, // No storage path needed for this example
+            config.graphql_endpoint.clone(),
+            Some(config.wallet_path.clone()),
+            Some(config.keystore_path.clone()),
+            Some(config.storage_path.clone()),
         )
-        .expect("Failed to create Linera client");
+            .expect("Failed to create Linera client");
 
         SynapseNetClient { config, client }
     }
@@ -124,5 +124,14 @@ impl SynapseNetClient {
                 }
             }
         }
+    }
+
+    pub async fn refresh_config(&mut self) -> Result<(), SynapseNetError> {
+        let response = reqwest::get("http://localhost:8091/config").await
+            .map_err(|e| SynapseNetError::from(e))?;
+        let config: SynapseNetConfig = response.json().await
+            .map_err(|e| SynapseNetError::from(e))?;
+        *self = SynapseNetClient::new(config.clone());
+        Ok(())
     }
 }

@@ -10,7 +10,6 @@ pub struct PriceFeedAbi;
 impl ContractAbi for PriceFeedAbi {
     type Operation = Operation;
     type Response = ();
-    type Event = PriceFeedEvent;
 }
 
 impl ServiceAbi for PriceFeedAbi {

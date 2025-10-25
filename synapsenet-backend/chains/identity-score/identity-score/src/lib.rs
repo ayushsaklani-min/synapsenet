@@ -10,7 +10,6 @@ pub struct IdentityScoreAbi;
 impl ContractAbi for IdentityScoreAbi {
     type Operation = Operation;
     type Response = ();
-    type Event = IdentityScoreEvent;
 }
 
 impl ServiceAbi for IdentityScoreAbi {

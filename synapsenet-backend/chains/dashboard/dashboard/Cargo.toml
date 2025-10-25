@@ -7,10 +7,14 @@ edition = "2021"
 linera-sdk = "0.15.4"
 linera-views = "0.15.4"
 linera-base = "0.15.4"
-async-graphql = "6.0"
+async-graphql = "7.0"
 serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-tokio = { version = "1.0", features = ["full"] }
+serde_json = { version = "1.0", optional = true }
+tokio = { version = "1.0", features = ["full"], optional = true }
+
+[features]
+default = []
+service = ["tokio", "serde_json"]
 
 [lib]
 name = "dashboard"

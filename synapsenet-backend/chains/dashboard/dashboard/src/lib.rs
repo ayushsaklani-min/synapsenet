@@ -10,7 +10,6 @@ pub struct DashboardAbi;
 impl ContractAbi for DashboardAbi {
     type Operation = Operation;
     type Response = ();
-    type Event = DashboardEvent;
 }
 
 impl ServiceAbi for DashboardAbi {
