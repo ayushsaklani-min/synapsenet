@@ -1,0 +1,9 @@
+# Ignore everything except the frontend
+synapsenet-backend/
+*.md
+*.txt
+*.ps1
+*.sh
+.git/
+node_modules/
+.DS_Store
