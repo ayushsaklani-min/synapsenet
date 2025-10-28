@@ -16,7 +16,7 @@
     }
   ],
   "env": {
-    "VITE_WS_URL": "wss://synapsenet-backend.onrender.com",
-    "VITE_API_URL": "https://synapsenet-backend.onrender.com"
+    "VITE_WS_URL": "wss://synapsenet-backend-45hz.onrender.com",
+    "VITE_API_URL": "https://synapsenet-backend-45hz.onrender.com"
   }
 }
