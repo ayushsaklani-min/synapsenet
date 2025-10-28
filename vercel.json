@@ -1,14 +1,9 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "synapsenet-frontend/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
-    }
-  ],
+  "framework": "vite",
+  "buildCommand": "npm run build",
+  "outputDirectory": "synapsenet-frontend/dist",
+  "installCommand": "cd synapsenet-frontend && npm install",
   "routes": [
     {
       "src": "/(.*)",
@@ -17,6 +12,8 @@
   ],
   "env": {
     "VITE_WS_URL": "wss://synapsenet-backend-45hz.onrender.com",
-    "VITE_API_URL": "https://synapsenet-backend-45hz.onrender.com"
+    "VITE_API_URL": "https://synapsenet-backend-45hz.onrender.com",
+    "VITE_CHAINLINK_CONTRACT": "0x9b8e6d8b2417116f4ff9bc4e9b9f91a8a7d2f8e5",
+    "VITE_POLYGON_AMOY_RPC": "https://rpc-amoy.polygon.technology"
   }
 }
