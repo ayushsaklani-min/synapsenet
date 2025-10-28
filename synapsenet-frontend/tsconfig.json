@@ -6,7 +6,10 @@
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": false,
     "noUnusedLocals": false,
-    "noUnusedParameters": false
+    "noUnusedParameters": false,
+    "module": "esnext",
+    "target": "es2020",
+    "moduleResolution": "bundler"
   },
   "files": [],
   "references": [

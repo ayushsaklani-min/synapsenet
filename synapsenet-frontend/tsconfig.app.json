@@ -8,7 +8,11 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "jsx": "react-jsx",
-    "downlevelIteration": true
+    "downlevelIteration": true,
+    "module": "esnext",
+    "target": "es2020",
+    "moduleResolution": "bundler",
+    "types": ["vite/client"]
   },
   "include": ["./src"]
 }
