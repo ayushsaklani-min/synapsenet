@@ -57,11 +57,36 @@ class OptimizedChainlinkListener {
     this.lastSuccessfulTime = 0;
     this.cacheTimeout = 5000; // 5 seconds cache (more frequent updates)
     
+    // Score simulation data
+    this.scoreUsers = [
+      'user_0x1234', 'user_0x5678', 'user_0x9abc', 'user_0xdef0',
+      'user_0x2468', 'user_0x1357', 'user_0x9753', 'user_0x8642'
+    ];
+    this.scoreReasons = [
+      'Identity verification completed',
+      'KYC process updated',
+      'Credit score refreshed',
+      'Reputation score calculated',
+      'Trust level updated',
+      'Compliance check passed',
+      'Risk assessment updated',
+      'Profile validation completed'
+    ];
+    this.lastScoreUpdate = 0;
+    this.scoreUpdateInterval = 3000; // 3 seconds between score updates
+    
     this.setupWebSocketServer();
     this.startPriceStream();
+    this.startScoreStream();
   }
 
   setupWebSocketServer() {
+    // Don't create Express server if we're being used as a module
+    if (process.env.AS_MODULE === 'true') {
+      this.wsServer = null; // Will be set externally
+      return;
+    }
+    
     const app = express();
     app.use(cors());
     app.use(express.json());
@@ -202,6 +227,59 @@ class OptimizedChainlinkListener {
     setInterval(fetchPrice, 1000); // Every 1 second
   }
 
+  async startScoreStream() {
+    console.log("🆔 Starting identity score simulation stream...");
+    console.log("📊 Simulating user identity updates and score changes");
+    
+    const generateScoreUpdate = () => {
+      try {
+        const now = Date.now();
+        
+        // Check if enough time has passed since last score update
+        if (now - this.lastScoreUpdate < this.scoreUpdateInterval) {
+          return;
+        }
+        
+        this.lastScoreUpdate = now;
+        
+        // Randomly select user and generate score
+        const user = this.scoreUsers[Math.floor(Math.random() * this.scoreUsers.length)];
+        const reason = this.scoreReasons[Math.floor(Math.random() * this.scoreReasons.length)];
+        const score = Math.random() * 100; // Score between 0-100
+        
+        const scoreUpdate = {
+          id: randomUUID(),
+          type: "score_update",
+          data: {
+            user_id: user,
+            score: Number(score.toFixed(1)),
+            source: "Identity Score System",
+            network: "Linera Microchain"
+          },
+          timestamp: Date.now(),
+          sourceChain: "identity-score",
+          latency: Math.floor(Math.random() * 50 + 20) // 20-70ms latency
+        };
+
+        console.log(`🆔 ${user}: Score ${score.toFixed(1)} - ${reason}`);
+
+        // Broadcast to all connected WebSocket clients
+        if (this.wsServer) {
+          this.wsServer.clients.forEach((client) => {
+            if (client.readyState === 1 /* WebSocket.OPEN */) {
+              try { client.send(JSON.stringify(scoreUpdate)); } catch {}
+            }
+          });
+        }
+      } catch (error) {
+        console.error("❌ Error generating score update:", error.message);
+      }
+    };
+
+    // Generate score updates every 3 seconds
+    setInterval(generateScoreUpdate, this.scoreUpdateInterval);
+  }
+
   handleReconnection() {
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       this.reconnectAttempts++;
@@ -222,6 +300,12 @@ class OptimizedChainlinkListener {
       contract: CHAINLINK_CONTRACT,
       network: "Polygon Amoy",
       source: "Chainlink Oracle",
+      scoreSimulation: {
+        enabled: true,
+        users: this.scoreUsers.length,
+        updateInterval: this.scoreUpdateInterval,
+        lastUpdate: this.lastScoreUpdate
+      },
       optimizations: {
         connectionPooling: true,
         caching: true,
