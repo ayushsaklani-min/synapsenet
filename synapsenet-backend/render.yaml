@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: synapsenet-backend
+    env: node
+    plan: free
+    buildCommand: cd synapsenet-backend/services && npm install
+    startCommand: cd synapsenet-backend/services && node chainlink_listener.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: POLYGON_AMOY_RPC
+        value: https://rpc-amoy.polygon.technology
+      - key: CHAINLINK_CONTRACT
+        value: 0x9b8e6d8b2417116f4ff9bc4e9b9f91a8a7d2f8e5
+      - key: SEPOLIA_RPC
+        value: https://ethereum-sepolia.publicnode.com
