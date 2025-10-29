@@ -2,68 +2,94 @@
 
 mod state;
 
-use self::state::DashboardState;
 use async_graphql::{EmptySubscription, Object, Schema};
 use linera_sdk::{
     base::WithServiceAbi,
-    views::View,
+    views::{View, ViewStorageContext},
     Service, ServiceRuntime,
 };
+use dashboard::AggregatedData;
+use self::state::DashboardState;
 use std::sync::Arc;
-use dashboard::DashboardAbi;
 
 pub struct DashboardService {
-    state: DashboardState,
-    runtime: ServiceRuntime<Self>,
+    state: Arc<DashboardState>,
 }
 
 linera_sdk::service!(DashboardService);
 
 impl WithServiceAbi for DashboardService {
-    type Abi = DashboardAbi;
+    type Abi = dashboard::DashboardAbi;
 }
 
 impl Service for DashboardService {
     type Parameters = ();
 
     async fn load(runtime: ServiceRuntime<Self>) -> Self {
-        let state = DashboardState::load(runtime.root_view_storage_context())
+        let state = DashboardState::load(ViewStorageContext::from(runtime.root_view_storage_context()))
             .await
             .expect("Failed to load state");
-        DashboardService { state, runtime }
+        DashboardService {
+            state: Arc::new(state),
+        }
     }
 
-    async fn graphql_query(&mut self, request: Self::Query) -> Self::QueryResponse {
+    async fn handle_query(&self, request: Self::Query) -> Self::QueryResponse {
         let schema = Schema::build(
             QueryRoot {
-                received_events: self.state.received_events.get().clone(),
-                chain_id: *self.state.chain_id.get(),
+                state: self.state.clone(),
             },
-            dashboard::Operation::mutation_root(),
+            MutationRoot,
             EmptySubscription,
         )
         .finish();
         schema.execute(request).await
     }
-
-    async fn graphql_subscription(&mut self, _request: Self::Query) -> Self::QueryResponse {
-        // This is not supported in this example.
-        unimplemented!("GraphQL subscriptions are not supported by the Dashboard application")
-    }
 }
 
-pub struct QueryRoot {
-    received_events: Vec<String>,
-    chain_id: linera_base::data_types::ChainId,
+struct QueryRoot {
+    state: Arc<DashboardState>,
 }
 
 #[Object]
 impl QueryRoot {
-    async fn received_events(&self) -> &Vec<String> {
-        &self.received_events
+    async fn aggregated_data(&self) -> AggregatedData {
+        let price_updates = self.state.price_update_count.get().copied().unwrap_or(0);
+        let score_updates = self.state.score_update_count.get().copied().unwrap_or(0);
+        let last_price = self.state.last_price.get().copied().unwrap_or(0.0);
+        let total_score = self.state.total_score.get().copied().unwrap_or(0.0);
+        let score_count = self.state.score_count.get().copied().unwrap_or(0);
+        let timestamp = self.state.last_update.get().copied().unwrap_or(0);
+        
+        let avg_score = if score_count > 0 {
+            total_score / score_count as f64
+        } else {
+            0.0
+        };
+        
+        AggregatedData {
+            price_updates,
+            score_updates,
+            last_price,
+            avg_score,
+            timestamp,
+        }
     }
 
-    async fn chain_id(&self) -> &linera_base::data_types::ChainId {
-        &self.chain_id
+    async fn price_update_count(&self) -> u64 {
+        self.state.price_update_count.get().copied().unwrap_or(0)
+    }
+
+    async fn score_update_count(&self) -> u64 {
+        self.state.score_update_count.get().copied().unwrap_or(0)
+    }
+}
+
+struct MutationRoot;
+
+#[Object]
+impl MutationRoot {
+    async fn placeholder(&self) -> bool {
+        true
     }
 }

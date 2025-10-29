@@ -2,74 +2,84 @@
 
 mod state;
 
-use self::state::PriceFeedState;
-use async_graphql::{EmptySubscription, Object, Schema};
+use async_graphql::{EmptySubscription, Object, Schema, SimpleObject};
 use linera_sdk::{
     base::WithServiceAbi,
-    views::View,
+    views::{View, ViewStorageContext},
     Service, ServiceRuntime,
 };
+use price_feed::PriceData;
+use self::state::PriceFeedState;
 use std::sync::Arc;
-use price_feed::PriceFeedAbi;
 
 pub struct PriceFeedService {
-    state: PriceFeedState,
-    runtime: ServiceRuntime<Self>,
+    state: Arc<PriceFeedState>,
 }
 
 linera_sdk::service!(PriceFeedService);
 
 impl WithServiceAbi for PriceFeedService {
-    type Abi = PriceFeedAbi;
+    type Abi = price_feed::PriceFeedAbi;
 }
 
 impl Service for PriceFeedService {
     type Parameters = ();
 
     async fn load(runtime: ServiceRuntime<Self>) -> Self {
-        let state = PriceFeedState::load(runtime.root_view_storage_context())
+        let state = PriceFeedState::load(ViewStorageContext::from(runtime.root_view_storage_context()))
             .await
             .expect("Failed to load state");
-        PriceFeedService { state, runtime }
+        PriceFeedService {
+            state: Arc::new(state),
+        }
     }
 
-    async fn graphql_query(&mut self, request: Self::Query) -> Self::QueryResponse {
+    async fn handle_query(&self, request: Self::Query) -> Self::QueryResponse {
         let schema = Schema::build(
             QueryRoot {
-                prices: self.state.prices.get().clone(),
-                last_update: *self.state.last_update.get(),
-                chain_id: *self.state.chain_id.get(),
+                state: self.state.clone(),
             },
-            price_feed::Operation::mutation_root(),
+            MutationRoot,
             EmptySubscription,
         )
         .finish();
         schema.execute(request).await
     }
-
-    async fn graphql_subscription(&mut self, _request: Self::Query) -> Self::QueryResponse {
-        // This is not supported in this example.
-        unimplemented!("GraphQL subscriptions are not supported by the PriceFeed application")
-    }
 }
 
-pub struct QueryRoot {
-    prices: Vec<(String, f64)>,
-    last_update: u64,
-    chain_id: linera_base::data_types::ChainId,
+struct QueryRoot {
+    state: Arc<PriceFeedState>,
 }
 
 #[Object]
 impl QueryRoot {
-    async fn prices(&self) -> &Vec<(String, f64)> {
-        &self.prices
+    async fn price(&self, token: String) -> Option<PriceData> {
+        self.state.prices.get(&token).await.ok().flatten()
+    }
+
+    async fn all_prices(&self) -> Vec<PriceData> {
+        let mut prices = Vec::new();
+        self.state.prices.for_each_index_value(|_key, value| {
+            prices.push(value.clone());
+            Ok(())
+        }).await.ok();
+        prices
     }
 
     async fn last_update(&self) -> u64 {
-        self.last_update
+        self.state.last_update.get().copied().unwrap_or(0)
     }
 
-    async fn chain_id(&self) -> &linera_base::data_types::ChainId {
-        &self.chain_id
+    async fn update_count(&self) -> u64 {
+        self.state.update_count.get().copied().unwrap_or(0)
+    }
+}
+
+struct MutationRoot;
+
+#[Object]
+impl MutationRoot {
+    async fn placeholder(&self) -> bool {
+        true
     }
 }

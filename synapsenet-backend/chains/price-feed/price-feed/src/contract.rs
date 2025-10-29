@@ -3,13 +3,12 @@
 mod state;
 
 use linera_sdk::{
-    linera_base_types::WithContractAbi,
+    base::WithContractAbi,
     views::{RootView, View},
     Contract, ContractRuntime,
 };
 
-use price_feed::{Operation, PriceFeedEvent};
-
+use price_feed::{Event, Message, Operation, PriceData};
 use self::state::PriceFeedState;
 
 pub struct PriceFeedContract {
@@ -24,10 +23,9 @@ impl WithContractAbi for PriceFeedContract {
 }
 
 impl Contract for PriceFeedContract {
-    type Message = ();
+    type Message = Message;
     type Parameters = ();
     type InstantiationArgument = ();
-    type EventValue = PriceFeedEvent;
 
     async fn load(runtime: ContractRuntime<Self>) -> Self {
         let state = PriceFeedState::load(runtime.root_view_storage_context())
@@ -38,21 +36,47 @@ impl Contract for PriceFeedContract {
 
     async fn instantiate(&mut self, _argument: Self::InstantiationArgument) {
         self.runtime.application_parameters();
-        // Chain ID available via self.runtime.chain_id() when needed
     }
 
     async fn execute_operation(&mut self, operation: Self::Operation) -> Self::Response {
         match operation {
-            Operation::UpdatePrice { token, price } => {
+            Operation::UpdatePrice { token, price, source, network } => {
                 let timestamp = self.runtime.system_time().micros();
-                self.state.prices.get_mut().push((token.clone(), price));
+                
+                let price_data = PriceData {
+                    token: token.clone(),
+                    price,
+                    timestamp,
+                    source,
+                    network,
+                };
+                
+                // Store price data
+                self.state.prices.insert(&token, price_data.clone()).expect("Failed to insert price");
                 self.state.last_update.set(timestamp);
-                // Event emission handled by framework via EventValue type
+                
+                // Increment counter
+                let count = self.state.update_count.get().copied().unwrap_or(0);
+                self.state.update_count.set(count + 1);
+                
+                // Emit event for subscribers
+                self.runtime.emit(Event::PriceUpdated(price_data));
             }
         }
     }
 
-    async fn execute_message(&mut self, _message: Self::Message) {}
+    async fn execute_message(&mut self, message: Self::Message) {
+        match message {
+            Message::PriceUpdate(price_data) => {
+                // Handle cross-chain price updates
+                self.state.prices.insert(&price_data.token, price_data.clone())
+                    .expect("Failed to insert price from message");
+                self.state.last_update.set(price_data.timestamp);
+                
+                self.runtime.emit(Event::PriceUpdated(price_data));
+            }
+        }
+    }
 
     async fn store(mut self) {
         self.state.save().await.expect("Failed to save state");

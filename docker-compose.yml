@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  # Linera local network
+  linera-net:
+    image: linera-final:latest
+    container_name: synapsenet-linera
+    command: >
+      sh -c "
+      linera net up --testing-prng-seed 37 &&
+      linera service --port 8080 --storage rocksdb:/tmp/linera-net/
+      "
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+    volumes:
+      - linera_data:/tmp/linera-net
+    environment:
+      - RUST_LOG=info
+    networks:
+      - synapsenet
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Chainlink listener with Linera integration
+  chainlink-listener:
+    image: synapsenet-chainlink-listener:latest
+    container_name: synapsenet-chainlink
+    ports:
+      - "3001:3001"
+      - "8090:8090"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - WS_PORT=8090
+      - POLYGON_AMOY_RPC=https://rpc-amoy.polygon.technology
+      - SEPOLIA_RPC=https://ethereum-sepolia.publicnode.com
+      - LINERA_RPC=http://linera-net:8080
+      - ENABLE_LINERA=true
+    depends_on:
+      linera-net:
+        condition: service_healthy
+    networks:
+      - synapsenet
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Frontend
+  frontend:
+    image: synapsenet-frontend:latest
+    container_name: synapsenet-frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_WS_URL=ws://localhost:8090
+      - VITE_LINERA_GRAPHQL=http://localhost:8080/graphql
+    depends_on:
+      - chainlink-listener
+    networks:
+      - synapsenet
+
+volumes:
+  linera_data:
+    name: synapsenet_linera_data
+
+networks:
+  synapsenet:
+    name: synapsenet_network

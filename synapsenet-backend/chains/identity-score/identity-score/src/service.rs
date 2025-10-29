@@ -2,74 +2,91 @@
 
 mod state;
 
-use self::state::IdentityScoreState;
 use async_graphql::{EmptySubscription, Object, Schema};
 use linera_sdk::{
     base::WithServiceAbi,
-    views::View,
+    views::{View, ViewStorageContext},
     Service, ServiceRuntime,
 };
+use identity_score::ScoreData;
+use self::state::IdentityScoreState;
 use std::sync::Arc;
-use identity_score::IdentityScoreAbi;
 
 pub struct IdentityScoreService {
-    state: IdentityScoreState,
-    runtime: ServiceRuntime<Self>,
+    state: Arc<IdentityScoreState>,
 }
 
 linera_sdk::service!(IdentityScoreService);
 
 impl WithServiceAbi for IdentityScoreService {
-    type Abi = IdentityScoreAbi;
+    type Abi = identity_score::IdentityScoreAbi;
 }
 
 impl Service for IdentityScoreService {
     type Parameters = ();
 
     async fn load(runtime: ServiceRuntime<Self>) -> Self {
-        let state = IdentityScoreState::load(runtime.root_view_storage_context())
+        let state = IdentityScoreState::load(ViewStorageContext::from(runtime.root_view_storage_context()))
             .await
             .expect("Failed to load state");
-        IdentityScoreService { state, runtime }
+        IdentityScoreService {
+            state: Arc::new(state),
+        }
     }
 
-    async fn graphql_query(&mut self, request: Self::Query) -> Self::QueryResponse {
+    async fn handle_query(&self, request: Self::Query) -> Self::QueryResponse {
         let schema = Schema::build(
             QueryRoot {
-                scores: self.state.scores.get().clone(),
-                last_update: *self.state.last_update.get(),
-                chain_id: *self.state.chain_id.get(),
+                state: self.state.clone(),
             },
-            identity_score::Operation::mutation_root(),
+            MutationRoot,
             EmptySubscription,
         )
         .finish();
         schema.execute(request).await
     }
-
-    async fn graphql_subscription(&mut self, _request: Self::Query) -> Self::QueryResponse {
-        // This is not supported in this example.
-        unimplemented!("GraphQL subscriptions are not supported by the IdentityScore application")
-    }
 }
 
-pub struct QueryRoot {
-    scores: std::collections::HashMap<String, f64>,
-    last_update: u64,
-    chain_id: linera_base::data_types::ChainId,
+struct QueryRoot {
+    state: Arc<IdentityScoreState>,
 }
 
 #[Object]
 impl QueryRoot {
-    async fn scores(&self) -> &std::collections::HashMap<String, f64> {
-        &self.scores
+    async fn score(&self, user_id: String) -> Option<ScoreData> {
+        self.state.scores.get(&user_id).await.ok().flatten()
     }
 
-    async fn last_update(&self) -> u64 {
-        self.last_update
+    async fn all_scores(&self) -> Vec<ScoreData> {
+        let mut scores = Vec::new();
+        self.state.scores.for_each_index_value(|_key, value| {
+            scores.push(value.clone());
+            Ok(())
+        }).await.ok();
+        scores
     }
 
-    async fn chain_id(&self) -> &linera_base::data_types::ChainId {
-        &self.chain_id
+    async fn transaction_count(&self, user_id: String) -> u64 {
+        self.state.transaction_counts.get(&user_id).await.ok().flatten().unwrap_or(0)
+    }
+
+    async fn success_rate(&self, user_id: String) -> f64 {
+        let tx_count = self.state.transaction_counts.get(&user_id).await.ok().flatten().unwrap_or(0);
+        let success_count = self.state.success_counts.get(&user_id).await.ok().flatten().unwrap_or(0);
+        
+        if tx_count > 0 {
+            (success_count as f64 / tx_count as f64) * 100.0
+        } else {
+            0.0
+        }
+    }
+}
+
+struct MutationRoot;
+
+#[Object]
+impl MutationRoot {
+    async fn placeholder(&self) -> bool {
+        true
     }
 }
