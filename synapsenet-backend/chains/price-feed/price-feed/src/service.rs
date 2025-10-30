@@ -26,7 +26,9 @@ impl Service for PriceFeedService {
     type Parameters = ();
 
     async fn new(runtime: ServiceRuntime<Self>) -> Self {
-        let state = PriceFeedState::default();
+        let state = PriceFeedState::load(runtime.root_view_storage_context())
+            .await
+            .expect("Failed to load state");
         PriceFeedService {
             state: Arc::new(state),
         }
@@ -52,19 +54,26 @@ struct QueryRoot {
 #[Object]
 impl QueryRoot {
     async fn price(&self, token: String) -> Option<PriceData> {
-        self.state.prices.get(&token).cloned()
+        self.state.prices.get(&token)
+            .await
+            .expect("Failed to get price")
     }
 
     async fn all_prices(&self) -> Vec<PriceData> {
-        self.state.prices.values().cloned().collect()
+        let mut prices = Vec::new();
+        self.state.prices.for_each_index_value(|_key, value| {
+            prices.push(value.clone());
+            Ok(())
+        }).await.expect("Failed to iterate prices");
+        prices
     }
 
     async fn last_update(&self) -> u64 {
-        self.state.last_update
+        *self.state.last_update.get()
     }
 
     async fn update_count(&self) -> u64 {
-        self.state.update_count
+        *self.state.update_count.get()
     }
 }
 

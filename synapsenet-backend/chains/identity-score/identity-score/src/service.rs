@@ -26,7 +26,9 @@ impl Service for IdentityScoreService {
     type Parameters = ();
 
     async fn new(runtime: ServiceRuntime<Self>) -> Self {
-        let state = IdentityScoreState::default();
+        let state = IdentityScoreState::load(runtime.root_view_storage_context())
+            .await
+            .expect("Failed to load state");
         IdentityScoreService {
             state: Arc::new(state),
         }
@@ -52,20 +54,36 @@ struct QueryRoot {
 #[Object]
 impl QueryRoot {
     async fn score(&self, user_id: String) -> Option<ScoreData> {
-        self.state.scores.get(&user_id).cloned()
+        self.state.scores.get(&user_id)
+            .await
+            .expect("Failed to get score")
     }
 
     async fn all_scores(&self) -> Vec<ScoreData> {
-        self.state.scores.values().cloned().collect()
+        let mut scores = Vec::new();
+        self.state.scores.for_each_index_value(|_key, value| {
+            scores.push(value.clone());
+            Ok(())
+        }).await.expect("Failed to iterate scores");
+        scores
     }
 
     async fn transaction_count(&self, user_id: String) -> u64 {
-        self.state.transaction_counts.get(&user_id).cloned().unwrap_or(0)
+        self.state.transaction_counts.get(&user_id)
+            .await
+            .expect("Failed to get tx count")
+            .unwrap_or(0)
     }
 
     async fn success_rate(&self, user_id: String) -> f64 {
-        let tx_count = self.state.transaction_counts.get(&user_id).cloned().unwrap_or(0);
-        let success_count = self.state.success_counts.get(&user_id).cloned().unwrap_or(0);
+        let tx_count = self.state.transaction_counts.get(&user_id)
+            .await
+            .expect("Failed to get tx count")
+            .unwrap_or(0);
+        let success_count = self.state.success_counts.get(&user_id)
+            .await
+            .expect("Failed to get success count")
+            .unwrap_or(0);
         
         if tx_count > 0 {
             (success_count as f64 / tx_count as f64) * 100.0

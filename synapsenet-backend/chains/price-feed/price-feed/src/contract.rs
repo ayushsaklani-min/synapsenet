@@ -29,7 +29,9 @@ impl Contract for PriceFeedContract {
     type EventValue = Event;
 
     async fn load(runtime: ContractRuntime<Self>) -> Self {
-        let state = PriceFeedState::default();
+        let state = PriceFeedState::load(runtime.root_view_storage_context())
+            .await
+            .expect("Failed to load state");
         PriceFeedContract { state, runtime }
     }
 
@@ -50,12 +52,14 @@ impl Contract for PriceFeedContract {
                     network,
                 };
                 
-                // Store price data
-                self.state.prices.insert(token.clone(), price_data.clone());
-                self.state.last_update = timestamp;
+                // Store price data using MapView
+                self.state.prices.insert(&token, price_data.clone())
+                    .expect("Failed to insert price");
+                self.state.last_update.set(timestamp);
                 
-                // Increment counter
-                self.state.update_count += 1;
+                // Increment counter using RegisterView
+                let count = self.state.update_count.get();
+                self.state.update_count.set(count + 1);
                 
                 // Emit event for subscribers
                 // self.runtime.emit_event(Event::PriceUpdated(price_data));
@@ -66,9 +70,10 @@ impl Contract for PriceFeedContract {
     async fn execute_message(&mut self, message: Self::Message) {
         match message {
             Message::PriceUpdate(price_data) => {
-                // Handle cross-chain price updates
-                self.state.prices.insert(price_data.token.clone(), price_data.clone());
-                self.state.last_update = price_data.timestamp;
+                // Handle cross-chain price updates using MapView
+                self.state.prices.insert(&price_data.token, price_data.clone())
+                    .expect("Failed to insert price");
+                self.state.last_update.set(price_data.timestamp);
                 
                 // self.runtime.emit_event(Event::PriceUpdated(price_data));
             }
@@ -76,6 +81,6 @@ impl Contract for PriceFeedContract {
     }
 
     async fn store(mut self) {
-        // State is automatically persisted
+        self.state.save().await.expect("Failed to save state");
     }
 }

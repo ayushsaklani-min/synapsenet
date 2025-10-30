@@ -1,10 +1,9 @@
-use std::collections::HashMap;
-use serde::{Deserialize, Serialize};
+use linera_sdk::views::{MapView, RegisterView, RootView, ViewStorageContext};
 use crate::PriceData;
 
-#[derive(Default, Clone, Serialize, Deserialize)]
+#[derive(RootView)]
 pub struct PriceFeedState {
-    pub prices: HashMap<String, PriceData>,
-    pub last_update: u64,
-    pub update_count: u64,
+    pub prices: MapView<String, PriceData>,
+    pub last_update: RegisterView<u64>,
+    pub update_count: RegisterView<u64>,
 }

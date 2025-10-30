@@ -29,7 +29,9 @@ impl Contract for DashboardContract {
     type EventValue = Event;
 
     async fn load(runtime: ContractRuntime<Self>) -> Self {
-        let state = DashboardState::default();
+        let state = DashboardState::load(runtime.root_view_storage_context())
+            .await
+            .expect("Failed to load state");
         DashboardContract { state, runtime }
     }
 
@@ -50,18 +52,25 @@ impl Contract for DashboardContract {
         
         match message {
             Message::PriceUpdate { token: _, price } => {
-                self.state.price_update_count += 1;
-                self.state.last_price = price;
-                self.state.last_update = timestamp;
+                let count = *self.state.price_update_count.get();
+                self.state.price_update_count.set(count + 1);
+                self.state.last_price.set(price);
+                self.state.last_update.set(timestamp);
                 
                 self.emit_aggregated_data(timestamp).await;
             }
             
             Message::ScoreUpdate { user_id: _, score } => {
-                self.state.score_update_count += 1;
-                self.state.total_score += score;
-                self.state.score_count += 1;
-                self.state.last_update = timestamp;
+                let count = *self.state.score_update_count.get();
+                self.state.score_update_count.set(count + 1);
+                
+                let total = *self.state.total_score.get();
+                self.state.total_score.set(total + score);
+                
+                let score_count = *self.state.score_count.get();
+                self.state.score_count.set(score_count + 1);
+                
+                self.state.last_update.set(timestamp);
                 
                 self.emit_aggregated_data(timestamp).await;
             }
@@ -69,22 +78,23 @@ impl Contract for DashboardContract {
     }
 
     async fn store(mut self) {
-        // State is automatically persisted
+        self.state.save().await.expect("Failed to save state");
     }
 }
 
 impl DashboardContract {
     async fn emit_aggregated_data(&mut self, timestamp: u64) {
-        let avg_score = if self.state.score_count > 0 {
-            self.state.total_score / self.state.score_count as f64
+        let score_count = *self.state.score_count.get();
+        let avg_score = if score_count > 0 {
+            *self.state.total_score.get() / score_count as f64
         } else {
             0.0
         };
         
         let data = AggregatedData {
-            price_updates: self.state.price_update_count,
-            score_updates: self.state.score_update_count,
-            last_price: self.state.last_price,
+            price_updates: *self.state.price_update_count.get(),
+            score_updates: *self.state.score_update_count.get(),
+            last_price: *self.state.last_price.get(),
             avg_score,
             timestamp,
         };

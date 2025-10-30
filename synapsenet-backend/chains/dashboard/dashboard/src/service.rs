@@ -26,7 +26,9 @@ impl Service for DashboardService {
     type Parameters = ();
 
     async fn new(runtime: ServiceRuntime<Self>) -> Self {
-        let state = DashboardState::default();
+        let state = DashboardState::load(runtime.root_view_storage_context())
+            .await
+            .expect("Failed to load state");
         DashboardService {
             state: Arc::new(state),
         }
@@ -52,27 +54,28 @@ struct QueryRoot {
 #[Object]
 impl QueryRoot {
     async fn aggregated_data(&self) -> AggregatedData {
-        let avg_score = if self.state.score_count > 0 {
-            self.state.total_score / self.state.score_count as f64
+        let score_count = *self.state.score_count.get();
+        let avg_score = if score_count > 0 {
+            *self.state.total_score.get() / score_count as f64
         } else {
             0.0
         };
         
         AggregatedData {
-            price_updates: self.state.price_update_count,
-            score_updates: self.state.score_update_count,
-            last_price: self.state.last_price,
+            price_updates: *self.state.price_update_count.get(),
+            score_updates: *self.state.score_update_count.get(),
+            last_price: *self.state.last_price.get(),
             avg_score,
-            timestamp: self.state.last_update,
+            timestamp: *self.state.last_update.get(),
         }
     }
 
     async fn price_update_count(&self) -> u64 {
-        self.state.price_update_count
+        *self.state.price_update_count.get()
     }
 
     async fn score_update_count(&self) -> u64 {
-        self.state.score_update_count
+        *self.state.score_update_count.get()
     }
 }
 
