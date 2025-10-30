@@ -1,12 +1,9 @@
-use linera_sdk::views::{linera_views, RegisterView, RootView, ViewStorageContext};
-
-#[derive(RootView)]
-#[view(context = "ViewStorageContext")]
+#[derive(Default)]
 pub struct DashboardState {
-    pub price_update_count: RegisterView<u64>,
-    pub score_update_count: RegisterView<u64>,
-    pub last_price: RegisterView<f64>,
-    pub total_score: RegisterView<f64>,
-    pub score_count: RegisterView<u64>,
-    pub last_update: RegisterView<u64>,
+    pub price_update_count: u64,
+    pub score_update_count: u64,
+    pub last_price: f64,
+    pub total_score: f64,
+    pub score_count: u64,
+    pub last_update: u64,
 }

@@ -1,18 +1,15 @@
 use async_graphql::{Request, Response, SimpleObject};
-use linera_sdk::{
-    graphql::GraphQLMutationRoot,
-    base::{ContractAbi, ServiceAbi},
-};
+use linera_sdk::graphql::GraphQLMutationRoot;
 use serde::{Deserialize, Serialize};
 
 pub struct PriceFeedAbi;
 
-impl ContractAbi for PriceFeedAbi {
+impl linera_sdk::abi::ContractAbi for PriceFeedAbi {
     type Operation = Operation;
     type Response = ();
 }
 
-impl ServiceAbi for PriceFeedAbi {
+impl linera_sdk::abi::ServiceAbi for PriceFeedAbi {
     type Query = Request;
     type QueryResponse = Response;
 }

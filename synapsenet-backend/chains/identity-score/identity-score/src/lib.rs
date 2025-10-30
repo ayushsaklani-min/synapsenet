@@ -1,18 +1,15 @@
 use async_graphql::{Request, Response, SimpleObject};
-use linera_sdk::{
-    graphql::GraphQLMutationRoot,
-    base::{ContractAbi, ServiceAbi},
-};
+use linera_sdk::graphql::GraphQLMutationRoot;
 use serde::{Deserialize, Serialize};
 
 pub struct IdentityScoreAbi;
 
-impl ContractAbi for IdentityScoreAbi {
+impl linera_sdk::abi::ContractAbi for IdentityScoreAbi {
     type Operation = Operation;
     type Response = ();
 }
 
-impl ServiceAbi for IdentityScoreAbi {
+impl linera_sdk::abi::ServiceAbi for IdentityScoreAbi {
     type Query = Request;
     type QueryResponse = Response;
 }

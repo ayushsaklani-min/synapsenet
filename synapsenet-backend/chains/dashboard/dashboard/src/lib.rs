@@ -1,18 +1,15 @@
 use async_graphql::{Request, Response, SimpleObject};
-use linera_sdk::{
-    graphql::GraphQLMutationRoot,
-    base::{ContractAbi, ServiceAbi},
-};
+use linera_sdk::graphql::GraphQLMutationRoot;
 use serde::{Deserialize, Serialize};
 
 pub struct DashboardAbi;
 
-impl ContractAbi for DashboardAbi {
+impl linera_sdk::abi::ContractAbi for DashboardAbi {
     type Operation = Operation;
     type Response = ();
 }
 
-impl ServiceAbi for DashboardAbi {
+impl linera_sdk::abi::ServiceAbi for DashboardAbi {
     type Query = Request;
     type QueryResponse = Response;
 }

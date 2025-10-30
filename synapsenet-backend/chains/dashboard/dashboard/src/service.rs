@@ -4,7 +4,7 @@ mod state;
 
 use async_graphql::{EmptySubscription, Object, Schema};
 use linera_sdk::{
-    base::WithServiceAbi,
+    abi::WithServiceAbi,
     views::{View, ViewStorageContext},
     Service, ServiceRuntime,
 };
@@ -25,10 +25,8 @@ impl WithServiceAbi for DashboardService {
 impl Service for DashboardService {
     type Parameters = ();
 
-    async fn load(runtime: ServiceRuntime<Self>) -> Self {
-        let state = DashboardState::load(ViewStorageContext::from(runtime.root_view_storage_context()))
-            .await
-            .expect("Failed to load state");
+    async fn new(runtime: ServiceRuntime<Self>) -> Self {
+        let state = DashboardState::default();
         DashboardService {
             state: Arc::new(state),
         }
@@ -54,34 +52,27 @@ struct QueryRoot {
 #[Object]
 impl QueryRoot {
     async fn aggregated_data(&self) -> AggregatedData {
-        let price_updates = self.state.price_update_count.get().copied().unwrap_or(0);
-        let score_updates = self.state.score_update_count.get().copied().unwrap_or(0);
-        let last_price = self.state.last_price.get().copied().unwrap_or(0.0);
-        let total_score = self.state.total_score.get().copied().unwrap_or(0.0);
-        let score_count = self.state.score_count.get().copied().unwrap_or(0);
-        let timestamp = self.state.last_update.get().copied().unwrap_or(0);
-        
-        let avg_score = if score_count > 0 {
-            total_score / score_count as f64
+        let avg_score = if self.state.score_count > 0 {
+            self.state.total_score / self.state.score_count as f64
         } else {
             0.0
         };
         
         AggregatedData {
-            price_updates,
-            score_updates,
-            last_price,
+            price_updates: self.state.price_update_count,
+            score_updates: self.state.score_update_count,
+            last_price: self.state.last_price,
             avg_score,
-            timestamp,
+            timestamp: self.state.last_update,
         }
     }
 
     async fn price_update_count(&self) -> u64 {
-        self.state.price_update_count.get().copied().unwrap_or(0)
+        self.state.price_update_count
     }
 
     async fn score_update_count(&self) -> u64 {
-        self.state.score_update_count.get().copied().unwrap_or(0)
+        self.state.score_update_count
     }
 }
 

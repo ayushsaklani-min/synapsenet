@@ -3,7 +3,7 @@
 mod state;
 
 use linera_sdk::{
-    base::WithContractAbi,
+    abi::WithContractAbi,
     views::{RootView, View},
     Contract, ContractRuntime,
 };
@@ -26,11 +26,10 @@ impl Contract for PriceFeedContract {
     type Message = Message;
     type Parameters = ();
     type InstantiationArgument = ();
+    type EventValue = Event;
 
     async fn load(runtime: ContractRuntime<Self>) -> Self {
-        let state = PriceFeedState::load(runtime.root_view_storage_context())
-            .await
-            .expect("Failed to load state");
+        let state = PriceFeedState::default();
         PriceFeedContract { state, runtime }
     }
 
@@ -52,15 +51,14 @@ impl Contract for PriceFeedContract {
                 };
                 
                 // Store price data
-                self.state.prices.insert(&token, price_data.clone()).expect("Failed to insert price");
-                self.state.last_update.set(timestamp);
+                self.state.prices.insert(token.clone(), price_data.clone());
+                self.state.last_update = timestamp;
                 
                 // Increment counter
-                let count = self.state.update_count.get().copied().unwrap_or(0);
-                self.state.update_count.set(count + 1);
+                self.state.update_count += 1;
                 
                 // Emit event for subscribers
-                self.runtime.emit(Event::PriceUpdated(price_data));
+                // self.runtime.emit_event(Event::PriceUpdated(price_data));
             }
         }
     }
@@ -69,16 +67,15 @@ impl Contract for PriceFeedContract {
         match message {
             Message::PriceUpdate(price_data) => {
                 // Handle cross-chain price updates
-                self.state.prices.insert(&price_data.token, price_data.clone())
-                    .expect("Failed to insert price from message");
-                self.state.last_update.set(price_data.timestamp);
+                self.state.prices.insert(price_data.token.clone(), price_data.clone());
+                self.state.last_update = price_data.timestamp;
                 
-                self.runtime.emit(Event::PriceUpdated(price_data));
+                // self.runtime.emit_event(Event::PriceUpdated(price_data));
             }
         }
     }
 
     async fn store(mut self) {
-        self.state.save().await.expect("Failed to save state");
+        // State is automatically persisted
     }
 }

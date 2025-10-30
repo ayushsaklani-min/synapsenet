@@ -4,7 +4,7 @@ mod state;
 
 use async_graphql::{EmptySubscription, Object, Schema, SimpleObject};
 use linera_sdk::{
-    base::WithServiceAbi,
+    abi::WithServiceAbi,
     views::{View, ViewStorageContext},
     Service, ServiceRuntime,
 };
@@ -25,10 +25,8 @@ impl WithServiceAbi for PriceFeedService {
 impl Service for PriceFeedService {
     type Parameters = ();
 
-    async fn load(runtime: ServiceRuntime<Self>) -> Self {
-        let state = PriceFeedState::load(ViewStorageContext::from(runtime.root_view_storage_context()))
-            .await
-            .expect("Failed to load state");
+    async fn new(runtime: ServiceRuntime<Self>) -> Self {
+        let state = PriceFeedState::default();
         PriceFeedService {
             state: Arc::new(state),
         }
@@ -54,24 +52,19 @@ struct QueryRoot {
 #[Object]
 impl QueryRoot {
     async fn price(&self, token: String) -> Option<PriceData> {
-        self.state.prices.get(&token).await.ok().flatten()
+        self.state.prices.get(&token).cloned()
     }
 
     async fn all_prices(&self) -> Vec<PriceData> {
-        let mut prices = Vec::new();
-        self.state.prices.for_each_index_value(|_key, value| {
-            prices.push(value.clone());
-            Ok(())
-        }).await.ok();
-        prices
+        self.state.prices.values().cloned().collect()
     }
 
     async fn last_update(&self) -> u64 {
-        self.state.last_update.get().copied().unwrap_or(0)
+        self.state.last_update
     }
 
     async fn update_count(&self) -> u64 {
-        self.state.update_count.get().copied().unwrap_or(0)
+        self.state.update_count
     }
 }
 

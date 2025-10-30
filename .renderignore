@@ -1,0 +1,22 @@
+# Ignore Rust/Linera contracts - they are not needed for Node.js backend deployment
+synapsenet-backend/chains/
+synapsenet-backend/sdk/
+
+# Ignore frontend
+synapsenet-frontend/
+
+# Ignore documentation
+docs/
+*.md
+
+# Ignore scripts
+scripts/
+*.sh
+*.ps1
+
+# Ignore Linera config
+.linera/
+wallet_0.json
+
+# Ignore Docker
+docker-compose.yml

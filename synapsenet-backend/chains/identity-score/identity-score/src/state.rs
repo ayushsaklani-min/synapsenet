@@ -1,11 +1,10 @@
-use linera_sdk::views::{linera_views, MapView, RegisterView, RootView, ViewStorageContext};
+use std::collections::HashMap;
 use crate::ScoreData;
 
-#[derive(RootView)]
-#[view(context = "ViewStorageContext")]
+#[derive(Default)]
 pub struct IdentityScoreState {
-    pub scores: MapView<String, ScoreData>,
-    pub transaction_counts: MapView<String, u64>,
-    pub success_counts: MapView<String, u64>,
-    pub last_update: RegisterView<u64>,
+    pub scores: HashMap<String, ScoreData>,
+    pub transaction_counts: HashMap<String, u64>,
+    pub success_counts: HashMap<String, u64>,
+    pub last_update: u64,
 }

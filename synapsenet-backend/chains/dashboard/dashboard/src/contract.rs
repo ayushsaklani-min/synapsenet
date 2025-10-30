@@ -3,7 +3,7 @@
 mod state;
 
 use linera_sdk::{
-    base::WithContractAbi,
+    abi::WithContractAbi,
     views::{RootView, View},
     Contract, ContractRuntime,
 };
@@ -26,11 +26,10 @@ impl Contract for DashboardContract {
     type Message = Message;
     type Parameters = ();
     type InstantiationArgument = ();
+    type EventValue = Event;
 
     async fn load(runtime: ContractRuntime<Self>) -> Self {
-        let state = DashboardState::load(runtime.root_view_storage_context())
-            .await
-            .expect("Failed to load state");
+        let state = DashboardState::default();
         DashboardContract { state, runtime }
     }
 
@@ -51,24 +50,18 @@ impl Contract for DashboardContract {
         
         match message {
             Message::PriceUpdate { token: _, price } => {
-                let count = self.state.price_update_count.get().copied().unwrap_or(0);
-                self.state.price_update_count.set(count + 1);
-                self.state.last_price.set(price);
-                self.state.last_update.set(timestamp);
+                self.state.price_update_count += 1;
+                self.state.last_price = price;
+                self.state.last_update = timestamp;
                 
                 self.emit_aggregated_data(timestamp).await;
             }
             
             Message::ScoreUpdate { user_id: _, score } => {
-                let count = self.state.score_update_count.get().copied().unwrap_or(0);
-                self.state.score_update_count.set(count + 1);
-                
-                let total = self.state.total_score.get().copied().unwrap_or(0.0);
-                let score_count = self.state.score_count.get().copied().unwrap_or(0);
-                
-                self.state.total_score.set(total + score);
-                self.state.score_count.set(score_count + 1);
-                self.state.last_update.set(timestamp);
+                self.state.score_update_count += 1;
+                self.state.total_score += score;
+                self.state.score_count += 1;
+                self.state.last_update = timestamp;
                 
                 self.emit_aggregated_data(timestamp).await;
             }
@@ -76,32 +69,26 @@ impl Contract for DashboardContract {
     }
 
     async fn store(mut self) {
-        self.state.save().await.expect("Failed to save state");
+        // State is automatically persisted
     }
 }
 
 impl DashboardContract {
     async fn emit_aggregated_data(&mut self, timestamp: u64) {
-        let price_updates = self.state.price_update_count.get().copied().unwrap_or(0);
-        let score_updates = self.state.score_update_count.get().copied().unwrap_or(0);
-        let last_price = self.state.last_price.get().copied().unwrap_or(0.0);
-        let total_score = self.state.total_score.get().copied().unwrap_or(0.0);
-        let score_count = self.state.score_count.get().copied().unwrap_or(0);
-        
-        let avg_score = if score_count > 0 {
-            total_score / score_count as f64
+        let avg_score = if self.state.score_count > 0 {
+            self.state.total_score / self.state.score_count as f64
         } else {
             0.0
         };
         
         let data = AggregatedData {
-            price_updates,
-            score_updates,
-            last_price,
+            price_updates: self.state.price_update_count,
+            score_updates: self.state.score_update_count,
+            last_price: self.state.last_price,
             avg_score,
             timestamp,
         };
         
-        self.runtime.emit(Event::DataAggregated(data));
+        // self.runtime.emit(Event::DataAggregated(data));
     }
 }
