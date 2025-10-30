@@ -1,4 +1,4 @@
-# SynapseNet 2.0
+# SynapseNet
 
 **Real-Time Decentralized Data Mesh with Linera Microchains**
 
@@ -208,10 +208,7 @@ Contributions are welcome! Please:
 - [ ] Mainnet deployment
 - [ ] Governance token integration
 
-## ⚠️ Disclaimer
-
-This is experimental software. Use at your own risk. Not audited for production use.
 
 ---
 
-**Built with ❤️ using Linera, Chainlink, and React**
+**Built with ❤️🚀🌕 using Linera, Chainlink, and React**
