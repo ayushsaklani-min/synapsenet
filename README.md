@@ -453,13 +453,11 @@ This is experimental software. Use at your own risk. Not audited for production 
 
 - **Linera Protocol**: For the microchain infrastructure
 - **Chainlink**: For decentralized oracle networks
-- **Polygon**: For the Amoy testnet
+
 
 ---
 
-**Built with ❤️ using Linera, Chainlink, and React**
 
-**Rating: 10/10** ⭐⭐⭐⭐⭐
 =======
 
 ---
