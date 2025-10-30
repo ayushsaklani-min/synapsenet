@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# SynapseNet 2.0 - Complete Startup Script
+# SynapseNet - Complete Startup Script
 # This script starts all services for real blockchain data
 
 echo "🚀 Starting SynapseNet 2.0 with Real Blockchain Data"
