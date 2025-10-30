@@ -1,349 +1,202 @@
-# SynapseNet
+# SynapseNet — Real‑time Data Mesh on Linera
 
-**Real-Time Decentralized Data Mesh with Linera Microchains**
+<div align="center">
 
+<img src="docs/banner.png" alt="SynapseNet" width="720"/>
 
+**Live Chainlink Price Feed • Identity Scores • Linera Microchains**
 
+[![Linera](https://img.shields.io/badge/Linera-v0.15.4-blue)](https://linera.dev)
+[![Rust](https://img.shields.io/badge/Rust-1.86.0-orange)](https://www.rust-lang.org/)
+[![Status](https://img.shields.io/badge/Status-Live-success)](.)
 
-SynapseNet is a high-performance blockchain data streaming platform that integrates Chainlink oracles with Linera microchains to deliver real-time price feeds and identity scoring with sub-200ms latency.
-
-## 🌟 Features
-
-- ⚡ **Sub-200ms Latency**: Real-time data streaming from blockchain to browser
-- 🔗 **Chainlink Integration**: Live ETH/USD price feeds from Polygon Amoy testnet
-- 🔄 **Linera Microchains**: Three fully functional microchains with state management
-- 📊 **Real-Time Dashboard**: Beautiful React UI with live charts and animations
-- 🎯 **Identity Scoring**: Dynamic reputation system with transaction tracking
-- 🔐 **Decentralized**: No central point of failure
-- 📈 **Scalable**: Microchain architecture for horizontal scaling
-- 🔗 **Cross-Chain Messaging**: Real message passing between microchains
-- 📡 **GraphQL API**: Complete query and mutation support
-- 💾 **Persistent State**: All data stored in Linera's distributed storage
+</div>
 
 ---
 
-## 🏗️ Architecture
+## 🔎 Overview
 
-```
-Chainlink Oracle (Polygon Amoy)
-         ↓
-Node.js Listener Service
-         ↓
-Linera Price Feed Microchain ──→ Linera Dashboard Microchain
-         ↓                              ↑
-    WebSocket                           │
-         ↓                              │
-React Frontend              Linera Identity Score Microchain
-```
+SynapseNet is a high‑performance, real‑time data mesh that bridges Chainlink oracle data into Linera microchains and streams it to a modern React dashboard. It showcases:
 
-### Components
+- Live ETH/USD price feed ingestion (Polygon Amoy, Chainlink)
+- Three Linera microchains: `price-feed`, `identity-score`, `dashboard`
+- Cross‑chain messaging and persistent on‑chain state
+- WebSocket broadcasting and GraphQL mutations
 
-1. **Price Feed Microchain** (81 lines): Stores and validates oracle price data
-2. **Identity Score Microchain** (123 lines): Tracks user reputation and transaction history
-3. **Dashboard Microchain** (94 lines): Aggregates data from other chains
-4. **Chainlink Listener** (478 lines): Bridges oracle data to Linera
-5. **React Frontend** (1,000+ lines): Real-time visualization dashboard
+Live demo: `https://synapsenet.vercel.app/`
+
+Backend (listener): `https://synapsenet-backend-45hz.onrender.com/`
 
 ---
 
-## 📊 Implementation Proof
+## 🧭 Architecture
 
-### Complete Linera Integration
+```
+Chainlink Oracle → Node Listener (Express + WS) → Linera Microchains
+   │                                                    │
+   └──────────── WebSocket to UI (1s updates) ─────────┘
 
-#### Price Feed Microchain ✅
-**File:** `synapsenet-backend/chains/price-feed/price-feed/src/contract.rs` (81 lines)
-
-**Features:**
-- Real state management with HashMap
-- Stores price data from Chainlink oracle
-- Emits events for subscribers
-- Sends messages to Dashboard microchain
-
-**Key Code:**
-```rust
-// Line 40: Store price in state
-self.state.prices.insert(token.clone(), price_data.clone());
-
-// Line 48: Send to subscribers
-self.runtime.prepare_message(message).send_to_subscribers();
+Microchains:
+1) price-feed      — stores validated price data
+2) identity-score  — tracks transactions and calculates dynamic reputation
+3) dashboard       — aggregates cross‑chain data for UI
 ```
 
-#### Identity Score Microchain ✅
-**File:** `synapsenet-backend/chains/identity-score/identity-score/src/contract.rs` (123 lines)
-
-**Features:**
-- Tracks user transactions
-- Calculates dynamic scores based on success rate
-- Maintains transaction history
-- Sends updates to Dashboard
-
-**Key Code:**
-```rust
-// Line 75: Calculate success rate
-let success_rate = (success_count as f64 / tx_count as f64) * 100.0;
-
-// Line 80: Dynamic score calculation
-let new_score = 50.0 + (success_rate / 2.0);
-```
-
-#### Dashboard Microchain ✅
-**File:** `synapsenet-backend/chains/dashboard/dashboard/src/contract.rs` (94 lines)
-
-**Features:**
-- Receives cross-chain messages
-- Aggregates data from Price Feed and Identity Score
-- Calculates averages and totals
-- Provides unified dashboard view
-
-**Key Code:**
-```rust
-// Line 40: Receive price updates
-Message::PriceUpdate { price } => {
-    self.state.price_update_count += 1;
-    self.state.last_price = price;
-}
-
-// Line 45: Receive score updates
-Message::ScoreUpdate { score } => {
-    self.state.score_update_count += 1;
-    self.state.total_score += score;
-}
-```
+Key contracts/services (abridged for reference):
+- `synapsenet-backend/chains/price-feed/price-feed/src/contract.rs` — price storage and updates
+- `synapsenet-backend/chains/identity-score/identity-score/src/contract.rs` — success‑rate scoring
+- `synapsenet-backend/chains/dashboard/dashboard/src/contract.rs` — aggregation and averages
+- `synapsenet-backend/services/chainlink_listener_linera.js` — Chainlink → Linera bridge and WS
 
 ---
 
-### 1. 
-- ✅ Real Chainlink oracle integration working
-- ✅ WebSocket streaming functional
-- ✅ React frontend with live updates
-- ✅ Docker setup available
-- ✅ **Complete Linera integration - all 3 contracts fully implemented**
-- ✅ **Real blockchain state management**
-- ✅ **End-to-end Linera microchain execution**
-- ✅ **Full contract logic (80-123 lines per contract)**
-
-### 2.
-- ✅ Proper Linera SDK dependencies (v0.15.4)
-- ✅ Three microchains defined (price-feed, identity-score, dashboard)
-- ✅ Deployment scripts present
-- ✅ Application IDs documented
-- ✅ **Complete contract implementations with real logic**
-- ✅ **Full service implementations with GraphQL**
-- ✅ **Real cross-chain communication working**
-- ✅ **GraphQL queries fully implemented**
-- ✅ **Linera state management with persistence**
-- ✅ **Dashboard aggregates from other chains**
-
-### 4. 
-- ✅ Strong use case: Oracle data + identity scoring
-- ✅ Microchain architecture for horizontal scaling
-- ✅ WebSocket for real-time updates
-- ✅ **Real identity scoring with transaction tracking**
-- ✅ **Cross-chain data aggregation**
-- ✅ **Persistent state management**
-- ✅ **Event-driven architecture**
-
----
-
----
-
-## 🚀 Quick Start
+## ⚙️ Quick Start
 
 ### Prerequisites
-
-- Rust 1.70+ with `wasm32-unknown-unknown` target
-- Linera CLI 0.15.4
+- Rust 1.86.0 with target `wasm32-unknown-unknown`
+- Linera CLI v0.15.4
 - Node.js 18+
 - Docker (optional)
 
-### Installation
-
+### One‑command demo (local)
 ```bash
-# Clone the repository
 git clone https://github.com/ayushsaklani-min/synapsenet.git
 cd synapsenet
 
-# Deploy Linera applications
-chmod +x scripts/deploy-linera-apps.sh
-./scripts/deploy-linera-apps.sh
+# Backend listener (HTTP + WS)
+cd synapsenet-backend/services && npm ci && npm run start &
 
-# Start all services
-chmod +x scripts/start-full-stack.sh
-./scripts/start-full-stack.sh
+# Frontend dashboard
+cd ../../synapsenet-frontend && npm ci && npm run dev
 ```
 
-### Access
+Dashboard: `http://localhost:5173`
 
-- **Dashboard**: http://localhost:5173
-- **GraphQL API**: http://localhost:8080/graphql
-- **REST API**: http://localhost:3001
-- **WebSocket**: ws://localhost:8090
+Listener health: `http://localhost:3001/health`
+
+WebSocket: `ws://localhost:8090`
 
 ---
 
-## 🧪 Testing
+## 🔗 Linera Integration
 
-### Run Verification Script
-```bash
-bash scripts/verify-implementation.sh
-```
-**Expected:** ✅ 37/37 checks passed
+- SDK: `linera-sdk = 0.15.4`
+- Operations are submitted via GraphQL mutations from the listener:
+  - `updatePrice(token, price, source, network)`
+  - `updateScore(userId, score, reason)`
+- Default chain and app IDs are read from `.linera/app-ids.json` if present.
 
-### Run Integration Tests
-```bash
-bash scripts/test-linera-integration.sh
-```
-
-### Test Linera Applications
-```bash
-cd synapsenet-backend/chains/price-feed/price-feed
-cargo test
-```
-
-### Test GraphQL API
-```bash
-# Get current price
-curl -X POST http://localhost:8080/graphql \
-  -H "Content-Type: application/json" \
-  -d '{"query": "{ price(token: \"ETH\") { price timestamp } }"}'
+Example request (listener → Linera):
+```json
+{
+  "query": "mutation UpdatePrice($token: String!, $price: Float!, $source: String!, $network: String!) { updatePrice(token: $token, price: $price, source: $source, network: $network) }",
+  "variables": { "token": "ETH", "price": 3751.67, "source": "Chainlink Oracle", "network": "Polygon Amoy" }
+}
 ```
 
 ---
 
-## 🐳 Docker Deployment
+## 🖥️ Frontend
+
+- React + Vite + Tailwind
+- Components: `PriceChart`, `ScoresChart`, `EventFeed`, `StatusBar`, `StatsGrid`
+- Real‑time updates via WS; status indicators for connection/latency
+
+---
+
+## 📦 Docker
 
 ```bash
-# Start all services
 docker-compose up -d
-
-# View logs
 docker-compose logs -f
-
-# Stop services
-docker-compose down
 ```
+
+Services: listener (HTTP/WS), optional reverse proxy, frontend (if configured).
 
 ---
 
 ## 🔧 Configuration
 
-Copy `.env.example` to `.env` and configure:
+Copy `.env.example` → `.env` and set:
 
-```bash
-cp .env.example .env
+- `ENABLE_LINERA=true|false`
+- `LINERA_RPC=http://localhost:8080`
+- `POLYGON_AMOY_RPC=...`
+- `PORT=3001`, `WS_PORT=8090`
+
+Optional: `.linera/app-ids.json`
+```json
+{
+  "priceFeedAppId": "<app-id>",
+  "identityScoreAppId": "<app-id>",
+  "dashboardAppId": "<app-id>",
+  "defaultChain": "<chain-id>"
+}
 ```
 
-Key variables:
-- `ENABLE_LINERA=true` - Enable Linera integration
-- `LINERA_RPC=http://localhost:8080` - Linera service endpoint
-- `POLYGON_AMOY_RPC` - Chainlink oracle RPC endpoint
+---
+
+## 🧪 Smoke Tests
+
+```bash
+# Listener health
+curl http://localhost:3001/health
+
+# GraphQL (example)
+curl -X POST http://localhost:8080/graphql \
+  -H "Content-Type: application/json" \
+  -d '{"query":"{ __schema { queryType { name } } }"}'
+```
 
 ---
 
-## 📊 Performance
+## 📊 Performance (target)
 
-- **Price Updates**: 1 second intervals
-- **Score Updates**: 3 second intervals
-- **Chainlink → Linera**: < 100ms
-- **Linera → Frontend**: < 50ms
-- **Total Latency**: < 200ms
+- Price polling: 1s interval
+- End‑to‑end latency (Oracle → UI): < 200ms typical on local
+- Score updates: ~3s interval
 
 ---
 
-## 🛠️ Development
+## 🛡️ Notes & Next Steps
 
-### Project Structure
+- Re‑enable contract event emits for richer analytics (currently commented in contracts)
+- Add e2e assertion script to verify a price update reaches the UI
+- First‑run UI panel to input/save Linera app IDs
+
+Roadmap:
+- Multi‑oracle aggregation
+- Historical storage & charts
+- Advanced scoring algorithms
+
+---
+
+## 📁 Project Structure
 
 ```
 synapsenet/
-├── synapsenet-backend/
-│   ├── chains/
-│   │   ├── price-feed/       # Price oracle microchain (81 lines)
-│   │   ├── identity-score/   # Reputation microchain (123 lines)
-│   │   └── dashboard/        # Aggregator microchain (94 lines)
-│   ├── services/
-│   │   └── chainlink_listener_linera.js (478 lines)
-│   └── sdk/                  # Rust SDK
-├── synapsenet-frontend/      # React dashboard (1,000+ lines)
-├── scripts/                  # Deployment scripts
-└── README.md                 # This file
-```
-
-### Building Applications
-
-```bash
-# Build all Linera applications
-cd synapsenet-backend/chains/price-feed/price-feed
-cargo build --release --target wasm32-unknown-unknown
-
-# Build frontend
-cd synapsenet-frontend
-npm run build
+├─ synapsenet-backend/
+│  ├─ chains/
+│  │  ├─ price-feed/price-feed/src/{contract.rs,state.rs,...}
+│  │  ├─ identity-score/identity-score/src/{contract.rs,state.rs,...}
+│  │  └─ dashboard/dashboard/src/{contract.rs,state.rs,...}
+│  └─ services/chainlink_listener_linera.js
+├─ synapsenet-frontend/
+└─ scripts/
 ```
 
 ---
 
-## 🎯 Use Cases
-
-- **DeFi Dashboards**: Real-time price monitoring for trading platforms
-- **Oracle Aggregation**: Combine multiple oracle sources with validation
-- **Identity Systems**: Decentralized reputation and credit scoring
-- **Event Streaming**: High-throughput blockchain event processing
-- **Microchain Coordination**: Demonstrate Linera's multi-chain capabilities
-
----
-
-
-
-
----
-
-## 📝 Deployed Application IDs
-
-**Application IDs:**
-- Price Feed: `e476187f6ddfeb9d588c7b45d3df334d5501d6499b3f9ad5595cae86cce16a65010000000000000000000000`
-- Identity Score: `e476187f6ddfeb9d588c7b45d3df334d5501d6499b3f9ad5595cae86cce16a65020000000000000000000000`
-- Dashboard: `e476187f6ddfeb9d588c7b45d3df334d5501d6499b3f9ad5595cae86cce16a65030000000000000000000000`
-
-**Default Chain:** `e476187f6ddfeb9d588c7b45d3df334d5501d6499b3f9ad5595cae86cce16a65`
-
----
-
-
----
-
-## 📧 Contact
-
-- GitHub: [@ayushsaklani-min](https://github.com/ayushsaklani-min)
-- Project: [SynapseNet](https://github.com/ayushsaklani-min/synapsenet)
-
----
-
-## 🗺️ Roadmap
-
-- [ ] Multi-oracle support (Chainlink, Band Protocol, API3)
-- [ ] Historical data storage and querying
-- [ ] Advanced identity scoring algorithms
-- [ ] Cross-chain price arbitrage detection
-- [ ] Mobile app for dashboard
-- [ ] Mainnet deployment
-- [ ] Governance token integration
 
 
 ---
 
 ## 🙏 Acknowledgments
 
-- **Linera Protocol**: For the microchain infrastructure
-- **Chainlink**: For decentralized oracle networks
-
+Linera Protocol, Chainlink, Polygon Amoy, and the broader OSS community.
 
 ---
 
+Built with ❤️ using Linera, Chainlink, and React.
 
-=======
 
----
-
-**Built with ❤️🚀🌕 using Linera, Chainlink, and React**
->>>>>>> ba983062bcff05dcce2560bf85b9460eb9bdaba0
