@@ -1,34 +1,12 @@
 version: '3.8'
 
 services:
-  # Linera local network
-  linera-net:
-    image: linera-final:latest
-    container_name: synapsenet-linera
-    command: >
-      sh -c "
-      linera net up --testing-prng-seed 37 &&
-      linera service --port 8080 --storage rocksdb:/tmp/linera-net/
-      "
-    ports:
-      - "8080:8080"
-      - "8081:8081"
-    volumes:
-      - linera_data:/tmp/linera-net
-    environment:
-      - RUST_LOG=info
-    networks:
-      - synapsenet
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # Chainlink listener with Linera integration
-  chainlink-listener:
-    image: synapsenet-chainlink-listener:latest
-    container_name: synapsenet-chainlink
+  # Chainlink listener backend
+  backend:
+    build:
+      context: ./synapsenet-backend/services
+      dockerfile: Dockerfile
+    container_name: synapsenet-backend
     ports:
       - "3001:3001"
       - "8090:8090"
@@ -38,11 +16,7 @@ services:
       - WS_PORT=8090
       - POLYGON_AMOY_RPC=https://rpc-amoy.polygon.technology
       - SEPOLIA_RPC=https://ethereum-sepolia.publicnode.com
-      - LINERA_RPC=http://linera-net:8080
-      - ENABLE_LINERA=true
-    depends_on:
-      linera-net:
-        condition: service_healthy
+      - CHAINLINK_CONTRACT=0x9b8e6d8b2417116f4ff9bc4e9b9f91a8a7d2f8e5
     networks:
       - synapsenet
     healthcheck:
@@ -50,25 +24,33 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
   # Frontend
   frontend:
-    image: synapsenet-frontend:latest
+    build:
+      context: ./synapsenet-frontend
+      dockerfile: Dockerfile
     container_name: synapsenet-frontend
     ports:
-      - "5173:5173"
+      - "5173:80"
     environment:
       - VITE_WS_URL=ws://localhost:8090
-      - VITE_LINERA_GRAPHQL=http://localhost:8080/graphql
+      - VITE_API_URL=http://localhost:3001
+      - VITE_CHAINLINK_CONTRACT=0x9b8e6d8b2417116f4ff9bc4e9b9f91a8a7d2f8e5
+      - VITE_POLYGON_AMOY_RPC=https://rpc-amoy.polygon.technology
     depends_on:
-      - chainlink-listener
+      backend:
+        condition: service_healthy
     networks:
       - synapsenet
-
-volumes:
-  linera_data:
-    name: synapsenet_linera_data
+    restart: unless-stopped
 
 networks:
   synapsenet:
     name: synapsenet_network
+    driver: bridge
+
+# Note: Linera microchains run locally, not in Docker
+# Use: linera service --port 8080 (on host machine)
+# The backend connects to Linera at http://localhost:8080 when ENABLE_LINERA=true

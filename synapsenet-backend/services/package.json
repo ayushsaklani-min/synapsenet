@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "description": "Chainlink oracle listener for SynapseNet",
   "type": "module",
-  "main": "chainlink_listener.js",
+  "main": "chainlink_listener_linera.js",
   "scripts": {
-    "start": "node chainlink_listener.js",
-    "dev": "nodemon chainlink_listener.js"
+    "start": "node chainlink_listener_linera.js",
+    "dev": "nodemon chainlink_listener_linera.js"
   },
   "dependencies": {
     "ethers": "^6.8.1",

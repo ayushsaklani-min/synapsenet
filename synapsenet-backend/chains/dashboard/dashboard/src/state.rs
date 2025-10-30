@@ -1,4 +1,6 @@
-#[derive(Default)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Default, Clone, Serialize, Deserialize)]
 pub struct DashboardState {
     pub price_update_count: u64,
     pub score_update_count: u64,

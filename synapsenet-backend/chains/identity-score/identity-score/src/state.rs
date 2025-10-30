@@ -1,7 +1,8 @@
 use std::collections::HashMap;
+use serde::{Deserialize, Serialize};
 use crate::ScoreData;
 
-#[derive(Default)]
+#[derive(Default, Clone, Serialize, Deserialize)]
 pub struct IdentityScoreState {
     pub scores: HashMap<String, ScoreData>,
     pub transaction_counts: HashMap<String, u64>,

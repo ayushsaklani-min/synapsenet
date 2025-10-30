@@ -50,6 +50,7 @@ class LineraIntegratedChainlinkListener {
     // Linera integration
     this.lineraEnabled = ENABLE_LINERA;
     this.lineraRpc = LINERA_RPC;
+    this.defaultChain = null;
     this.priceFeedAppId = null;
     this.identityScoreAppId = null;
     this.dashboardAppId = null;
@@ -90,10 +91,27 @@ class LineraIntegratedChainlinkListener {
     console.log(`📡 Linera RPC: ${this.lineraRpc}`);
     
     try {
-      // In production, these would be loaded from environment or config
-      // For now, we'll set them after deployment
-      console.log("✅ Linera integration initialized");
-      console.log("⚠️  Application IDs need to be set after deployment");
+      // Try to load app IDs from config file
+      const fs = await import('fs');
+      const path = await import('path');
+      
+      const configPath = path.join(process.cwd(), '../.linera/app-ids.json');
+      if (fs.existsSync(configPath)) {
+        const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        this.priceFeedAppId = config.priceFeedAppId;
+        this.identityScoreAppId = config.identityScoreAppId;
+        this.dashboardAppId = config.dashboardAppId;
+        this.defaultChain = config.defaultChain;
+        
+        console.log("✅ Linera integration initialized with app IDs:");
+        console.log(`   Price Feed: ${this.priceFeedAppId}`);
+        console.log(`   Identity Score: ${this.identityScoreAppId}`);
+        console.log(`   Dashboard: ${this.dashboardAppId}`);
+        console.log(`   Default Chain: ${this.defaultChain}`);
+      } else {
+        console.log("⚠️  App IDs config not found, Linera integration disabled");
+        this.lineraEnabled = false;
+      }
     } catch (error) {
       console.error("❌ Failed to initialize Linera:", error.message);
       this.lineraEnabled = false;
@@ -116,24 +134,46 @@ class LineraIntegratedChainlinkListener {
     }
 
     try {
-      const mutation = {
-        query: `
-          mutation($operation: Operation!) {
-            executeOperation(operation: $operation)
+      // Build GraphQL mutation based on operation type
+      let mutation;
+      if (operation.UpdatePrice) {
+        mutation = {
+          query: `
+            mutation UpdatePrice($token: String!, $price: Float!, $source: String!, $network: String!) {
+              updatePrice(token: $token, price: $price, source: $source, network: $network)
+            }
+          `,
+          variables: {
+            token: operation.UpdatePrice.token,
+            price: operation.UpdatePrice.price,
+            source: operation.UpdatePrice.source,
+            network: operation.UpdatePrice.network,
           }
-        `,
-        variables: {
-          operation
-        }
-      };
+        };
+      } else if (operation.UpdateScore) {
+        mutation = {
+          query: `
+            mutation UpdateScore($userId: String!, $score: Float!, $reason: String!) {
+              updateScore(userId: $userId, score: $score, reason: $reason)
+            }
+          `,
+          variables: {
+            userId: operation.UpdateScore.user_id,
+            score: operation.UpdateScore.score,
+            reason: operation.UpdateScore.reason,
+          }
+        };
+      } else {
+        return false;
+      }
 
-      const response = await fetch(`${this.lineraRpc}/graphql/${appId}`, {
+      const response = await fetch(`${this.lineraRpc}/chains/${this.defaultChain}/applications/${appId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(mutation),
-        timeout: 2000,
+        signal: AbortSignal.timeout(2000),
       });
 
       if (!response.ok) {
@@ -147,7 +187,7 @@ class LineraIntegratedChainlinkListener {
 
       return true;
     } catch (error) {
-      console.error(`❌ Failed to send to Linera (${appId}):`, error.message);
+      // Silently fail for Linera errors to not disrupt main flow
       return false;
     }
   }

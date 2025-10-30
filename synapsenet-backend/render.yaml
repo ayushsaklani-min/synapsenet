@@ -4,7 +4,7 @@ services:
     env: node
     plan: free
     buildCommand: cd synapsenet-backend/services && npm install
-    startCommand: cd synapsenet-backend/services && node chainlink_listener.js
+    startCommand: cd synapsenet-backend/services && node chainlink_listener_linera.js
     envVars:
       - key: NODE_ENV
         value: production
