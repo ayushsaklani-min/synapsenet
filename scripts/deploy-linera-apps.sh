@@ -1,7 +1,4 @@
-#!/bin/bash
 
-# SynapseNet Linera Application Deployment Script
-# This script deploys all three Linera microchain applications
 
 set -e
 
