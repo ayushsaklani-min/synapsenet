@@ -14,7 +14,7 @@
 
 ---
 
-## 🔎 Overview
+
 
 SynapseNet is a high‑performance, real‑time data mesh that bridges Chainlink oracle data into Linera microchains and streams it to a modern React dashboard. It showcases:
 
